@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Checker | NeuroWeb Studio</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+    <script src="../assets/app.js" defer></script>
+    <style>
+        .checker-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 6%;
+        }
+
+        .checker-content h1 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            line-height: 1.05;
+            margin: 20px 0;
+        }
+
+        .checker-content h1 span {
+            color: #f45b43;
+        }
+
+        .checker-intro {
+            max-width: 680px;
+            line-height: 1.8;
+            margin-bottom: 35px;
+        }
+
+        .checker-sample-note {
+            margin: 10px 0 14px;
+            font-size: 0.9rem;
+        }
+
+        .checker-panel {
+            padding: 28px;
+            border: 1px solid #d9d9cc;
+            margin-top: 25px;
+        }
+
+        .checker-panel textarea {
+            width: 100%;
+            min-height: 220px;
+            padding: 16px;
+            margin: 15px 0;
+            border: 1px solid #b8b8ac;
+            background: #fffef8;
+            font: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .checker-button {
+            padding: 14px 22px;
+            background: #b8f33d;
+            border: 1px solid #1b211b;
+            box-shadow: 4px 4px 0 #1b211b;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .checker-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 #1b211b;
+        }
+
+        #results {
+            margin-top: 25px;
+            line-height: 1.8;
+        }
+
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #deded3;
+        }
+
+        .result-pass {
+            color: #28753c;
+        }
+
+        .result-warning {
+            color: #b44730;
+        }
+
+        @media (max-width: 600px) {
+            .checker-content {
+                padding: 35px 5%;
+            }
+
+            .checker-panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="brand brand-editorial" href="../index.html">
+                <span class="brand-mark">N<span>W</span></span>
+                <span>NEUROWEB <b>STUDIO</b><small>FRONTEND QUALITY LAB</small></span>
+            </a>
+            <nav class="top-nav" aria-label="Main navigation">
+                <a href="../index.html">Overview</a>
+                <a class="active" href="quality-checker.html">Quality checker</a>
+                <a href="forms.html">Forms Studio</a>
+                <a href="interactions.html">Interaction Lab</a>
+                <a href="components.html">Component Gallery</a>
+                <a href="test-lab.html">Test Lab</a>
+                <a href="reports.html">Reports &amp; Notes</a>
+            </nav>
+        </header>
+    </div>
+    <main class="checker-content">
+
+        <p>FRONTEND QUALITY / 01</p>
+
+        <h1>
+            Find the flaws<br>
+            behind the <span>interface.</span>
+        </h1>
+
+        <p class="checker-intro">
+            A frontend quality tool for identifying common HTML structure,
+            accessibility, and interaction-related issues before a website
+            is released.
+        </p>
+
+        <section class="checker-panel">
+            <h2>HTML Quality Check</h2>
+
+            <p>
+                Paste your HTML below to check for common frontend issues.
+                The analysis runs directly in your browser.
+            </p>
+
+            <label for="htmlInput"><strong>HTML source code</strong></label>
+
+            <textarea
+                id="htmlInput"
+                placeholder="Paste your HTML code here..."
+            ><section>
+  <h1>Sample profile</h1>
+  <img src="profile.jpg">
+  <h3>Contact details</h3>
+  <input id="email" type="email">
+  <input id="email" type="text" aria-label="Phone number">
+  <button></button>
+</section></textarea>
+            <p class="checker-sample-note">The sample includes a few intentional issues. Select “Analyse HTML” to see which checks flag them, then edit the code and run it again.</p>
+
+            <button
+                type="button"
+                class="checker-button"
+                id="checkButton"
+            >
+                Analyse HTML →
+            </button>
+
+            <div
+                id="results"
+                aria-live="polite"
+            ></div>
+        </section>
+
+    </main>
+
+    <script>
+        document.getElementById("checkButton").addEventListener("click", function () {
+            const html = document.getElementById("htmlInput").value.trim();
+            const results = document.getElementById("results");
+
+            results.replaceChildren();
+
+            if (!html) {
+                results.textContent = "Please paste some HTML before running the check.";
+                return;
+            }
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const checks = [];
+
+            const images = [...doc.querySelectorAll("img")];
+            const missingAlt = images.filter(img => !img.hasAttribute("alt"));
+
+            checks.push({
+                label: "Images have alt attributes",
+                passed: missingAlt.length === 0,
+                detail: missingAlt.length === 0
+                    ? "All images have an alt attribute."
+                    : `${missingAlt.length} image(s) are missing an alt attribute.`
+            });
+
+            const inputs = [
+                ...doc.querySelectorAll("input, select, textarea")
+            ].filter(el => !["hidden", "submit", "button", "reset"].includes(
+                (el.type || "").toLowerCase()
+            ));
+
+            const unlabeled = inputs.filter(el => {
+                const hasLabel = el.labels && el.labels.length > 0;
+                const hasAriaLabel = el.hasAttribute("aria-label") ||
+                    el.hasAttribute("aria-labelledby");
+                return !hasLabel && !hasAriaLabel;
+            });
+
+            checks.push({
+                label: "Form controls have accessible names",
+                passed: unlabeled.length === 0,
+                detail: unlabeled.length === 0
+                    ? "All detected form controls have labels or ARIA naming attributes."
+                    : `${unlabeled.length} form control(s) may need accessible labels.`
+            });
+
+            const ids = [...doc.querySelectorAll("[id]")].map(el => el.id);
+            const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+            const uniqueDuplicates = [...new Set(duplicates)];
+
+            checks.push({
+                label: "IDs are unique",
+                passed: uniqueDuplicates.length === 0,
+                detail: uniqueDuplicates.length === 0
+                    ? "No duplicate IDs found."
+                    : `Duplicate ID(s): ${uniqueDuplicates.join(", ")}.`
+            });
+
+            const buttons = [...doc.querySelectorAll("button")];
+            const unnamedButtons = buttons.filter(button =>
+                !button.textContent.trim() &&
+                !button.hasAttribute("aria-label") &&
+                !button.hasAttribute("aria-labelledby")
+            );
+
+            checks.push({
+                label: "Buttons have accessible names",
+                passed: unnamedButtons.length === 0,
+                detail: unnamedButtons.length === 0
+                    ? "No unnamed buttons found."
+                    : `${unnamedButtons.length} button(s) may need accessible names.`
+            });
+
+            const headingLevels = [...doc.querySelectorAll("h1,h2,h3,h4,h5,h6")]
+                .map(el => Number(el.tagName.substring(1)));
+
+            let skippedHeading = false;
+
+            for (let i = 1; i < headingLevels.length; i++) {
+                if (headingLevels[i] > headingLevels[i - 1] + 1) {
+                    skippedHeading = true;
+                    break;
+                }
+            }
+
+            checks.push({
+                label: "Heading hierarchy",
+                passed: !skippedHeading,
+                detail: skippedHeading
+                    ? "A heading level may have been skipped."
+                    : "No skipped heading levels detected."
+            });
+
+            const passedCount = checks.filter(check => check.passed).length;
+
+            const summary = document.createElement("h3");
+            summary.textContent = `Results: ${passedCount} of ${checks.length} checks passed`;
+            results.appendChild(summary);
+
+            checks.forEach(check => {
+                const item = document.createElement("div");
+                item.className = "result-item";
+
+                const title = document.createElement("strong");
+                title.className = check.passed ? "result-pass" : "result-warning";
+                title.textContent = `${check.passed ? "PASS" : "REVIEW"} — ${check.label}`;
+
+                const detail = document.createElement("p");
+                detail.textContent = check.detail;
+
+                item.append(title, detail);
+                results.appendChild(item);
+            });
+
+            const note = document.createElement("p");
+            note.textContent =
+                "These are basic browser-side checks, not a complete accessibility or security audit.";
+            results.appendChild(note);
+        });
+    </script>
+</body>
+</html>
